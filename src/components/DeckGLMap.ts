@@ -4077,6 +4077,7 @@ export class DeckGLMap {
     if (fromGeometry) return fromGeometry;
     if (!this.maplibreMap || !this.countryGeoJsonLoaded) return null;
     try {
+      if (!this.maplibreMap.getLayer('country-interactive')) return null;
       const point = this.maplibreMap.project([lon, lat]);
       const features = this.maplibreMap.queryRenderedFeatures(point, { layers: ['country-interactive'] });
       const properties = (features?.[0]?.properties ?? {}) as Record<string, unknown>;
@@ -4162,6 +4163,7 @@ export class DeckGLMap {
 
     map.on('mousemove', (e) => {
       if (!this.onCountryClick) return;
+      if (!map.getLayer('country-interactive')) return;
       const features = map.queryRenderedFeatures(e.point, { layers: ['country-interactive'] });
       const name = features?.[0]?.properties?.name as string | undefined;
 
@@ -4181,9 +4183,11 @@ export class DeckGLMap {
     map.on('mouseout', () => {
       if (hoveredName) {
         hoveredName = null;
-        try {
-          map.setFilter('country-hover-fill', ['==', ['get', 'name'], '']);
-        } catch { /* style not done loading */ }
+        if (map.getLayer('country-hover-fill')) {
+          try {
+            map.setFilter('country-hover-fill', ['==', ['get', 'name'], '']);
+          } catch { /* style not done loading */ }
+        }
         map.getCanvas().style.cursor = '';
       }
     });
@@ -4192,6 +4196,7 @@ export class DeckGLMap {
   public highlightCountry(code: string): void {
     this.highlightedCountryCode = code;
     if (!this.maplibreMap || !this.countryGeoJsonLoaded) return;
+    if (!this.maplibreMap.getLayer('country-highlight-fill')) return;
     const filter: maplibregl.FilterSpecification = ['==', ['get', 'ISO3166-1-Alpha-2'], code];
     try {
       this.maplibreMap.setFilter('country-highlight-fill', filter);
@@ -4202,6 +4207,7 @@ export class DeckGLMap {
   public clearCountryHighlight(): void {
     this.highlightedCountryCode = null;
     if (!this.maplibreMap) return;
+    if (!this.maplibreMap.getLayer('country-highlight-fill')) return;
     const noMatch: maplibregl.FilterSpecification = ['==', ['get', 'ISO3166-1-Alpha-2'], ''];
     try {
       this.maplibreMap.setFilter('country-highlight-fill', noMatch);
@@ -4225,6 +4231,7 @@ export class DeckGLMap {
 
   private updateCountryLayerPaint(theme: 'dark' | 'light'): void {
     if (!this.maplibreMap || !this.countryGeoJsonLoaded) return;
+    if (!this.maplibreMap.getLayer('country-hover-fill')) return;
     const hoverOpacity = theme === 'light' ? 0.10 : 0.06;
     const highlightOpacity = theme === 'light' ? 0.18 : 0.12;
     try {
